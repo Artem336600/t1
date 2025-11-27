@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: #0a0a0a;
+  color: #ffffff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #111111;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #444444;
+}
+
+/* Code editor styles */
+.code-editor {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  tab-size: 4;
+  line-height: 1.6;
+}
+
+/* Highlight.js custom theme - minimal dark */
+.hljs {
+  background: #0a0a0a !important;
+  color: #e5e5e5;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-name,
+.hljs-tag {
+  color: #888888;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-section,
+.hljs-attribute,
+.hljs-literal,
+.hljs-template-tag,
+.hljs-template-variable,
+.hljs-type,
+.hljs-addition {
+  color: #a8a8a8;
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: #555555;
+}
+
+.hljs-number,
+.hljs-regexp,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #cccccc;
+}
+
+/* Bento grid animations */
+@keyframes bento-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1); }
+}
+
+.bento-card {
+  transition: all 0.2s ease;
+}
+
+.bento-card:hover {
+  background: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+/* Focus styles */
+input:focus,
+textarea:focus,
+select:focus,
+button:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+/* Textarea resize */
+textarea {
+  resize: vertical;
+}

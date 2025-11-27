@@ -1,0 +1,44 @@
+{
+  "tasks": [
+    {
+      "id": "1",
+      "title": "",
+      "hashtags": [],
+      "level": "junior",
+      "section": "live_coding",
+      "rating": 0.0,
+      "solve_count": 0,
+      "success_rate": 0.0
+    },
+    {
+      "id": "2",
+      "title": "",
+      "hashtags": [],
+      "level": "junior",
+      "section": "live_coding",
+      "rating": 0.0,
+      "solve_count": 0,
+      "success_rate": 0.0
+    },
+    {
+      "id": "3",
+      "title": "",
+      "hashtags": [],
+      "level": "middle",
+      "section": "live_coding",
+      "rating": 0.0,
+      "solve_count": 0,
+      "success_rate": 0.0
+    },
+    {
+      "id": "4",
+      "title": "",
+      "hashtags": [],
+      "level": "middle",
+      "section": "live_coding",
+      "rating": 0.0,
+      "solve_count": 0,
+      "success_rate": 0.0
+    }
+  ]
+}

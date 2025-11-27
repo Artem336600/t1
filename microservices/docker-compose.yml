@@ -1,0 +1,157 @@
+version: '3.8'
+
+services:
+  # ============== Gateway Layer ==============
+  
+  # API Gateway - Reverse proxy with rate limiting & auth
+  api-gateway:
+    build: ./api_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - TASK_API_URL=http://task-api:8010
+      - LIBRARY_SERVICE_URL=http://library:8001
+      - KNOWLEDGE_SERVICE_URL=http://knowledge:8005
+      - LEARNING_SERVICE_URL=http://learning:8006
+      - CODE_RUNNER_URL=http://code-runner:8003
+      - API_KEY_ADMIN=${API_KEY_ADMIN:-admin-key-123}
+      - API_KEY_USER=${API_KEY_USER:-user-key-456}
+    depends_on:
+      - task-api
+      - library
+      - knowledge
+      - learning
+    restart: unless-stopped
+
+  # ============== Orchestration Layer ==============
+  
+  # Task API - Orchestration & aggregation
+  task-api:
+    build: ./task_api
+    ports:
+      - "8010:8010"
+    environment:
+      - TASK_GENERATOR_URL=http://task-generator:8002
+      - LIBRARY_SERVICE_URL=http://library:8001
+      - RAG_SERVICE_URL=http://rag:8004
+      - KNOWLEDGE_SERVICE_URL=http://knowledge:8005
+      - LEARNING_SERVICE_URL=http://learning:8006
+    depends_on:
+      - task-generator
+      - library
+      - rag
+    restart: unless-stopped
+
+  # ============== Core Services ==============
+  
+  # Library Service - Sections, Folders, Tasks CRUD
+  library:
+    build: ./library_service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=sqlite:///./data/library.db
+    volumes:
+      - library_data:/app/data
+    restart: unless-stopped
+
+  # Task Generator Service - DAG workflow pipeline
+  task-generator:
+    build: ./task_generator
+    ports:
+      - "8002:8002"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.t1v.scibox.tech/v1}
+      - CODE_RUNNER_URL=http://code-runner:8003
+      - KNOWLEDGE_SERVICE_URL=http://knowledge:8005
+      - LEARNING_SERVICE_URL=http://learning:8006
+    depends_on:
+      - code-runner
+      - knowledge
+      - learning
+    restart: unless-stopped
+
+  # Task Architect Service - Preliminary Analysis
+  task-architect:
+    build: ./task_architect
+    ports:
+      - "8007:8007"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.t1v.scibox.tech/v1}
+    restart: unless-stopped
+
+  # Code Runner Service - Docker sandbox execution
+  code-runner:
+    build: ./code_runner
+    ports:
+      - "8003:8003"
+    environment:
+      - MAX_EXECUTION_TIME=10
+      - MAX_MEMORY_MB=256
+      - SANDBOX_MODE=docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker-in-Docker
+    restart: unless-stopped
+
+  # RAG Service - Embeddings and vector search
+  rag:
+    build: ./rag_service
+    ports:
+      - "8004:8004"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.t1v.scibox.tech/v1}
+      - EMBEDDING_MODEL=bge-m3
+    volumes:
+      - rag_data:/app/data
+    restart: unless-stopped
+
+  # Knowledge Service - Vector embeddings + FAISS
+  knowledge:
+    build: ./knowledge_service
+    ports:
+      - "8005:8005"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.t1v.scibox.tech/v1}
+      - EMBEDDING_MODEL=bge-m3
+      - SIMILARITY_THRESHOLD=0.65
+    volumes:
+      - knowledge_data:/app/data
+    restart: unless-stopped
+
+  # Learning Service - SM-2 spaced repetition
+  learning:
+    build: ./learning_service
+    ports:
+      - "8006:8006"
+    volumes:
+      - learning_data:/app/data
+    restart: unless-stopped
+
+  # ============== Frontend (Optional) ==============
+  
+  # Legacy Gateway with static frontend
+  gateway:
+    build: ./gateway
+    ports:
+      - "8080:8000"  # Alternative port for legacy UI
+    environment:
+      - LIBRARY_SERVICE_URL=http://library:8001
+      - TASK_GENERATOR_URL=http://task-generator:8002
+      - CODE_RUNNER_URL=http://code-runner:8003
+      - RAG_SERVICE_URL=http://rag:8004
+      - KNOWLEDGE_SERVICE_URL=http://knowledge:8005
+      - LEARNING_SERVICE_URL=http://learning:8006
+    depends_on:
+      - library
+      - task-generator
+    restart: unless-stopped
+
+volumes:
+  library_data:
+  rag_data:
+  knowledge_data:
+  learning_data:

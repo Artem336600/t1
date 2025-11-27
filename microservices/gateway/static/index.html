@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interview Prep Platform - Scenarios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        body { background: #0f172a; color: #e2e8f0; }
+        .agent-badge { transition: all 0.3s; }
+        .agent-badge.done { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; }
+        .agent-badge.running { background: rgba(251, 191, 36, 0.2); border-color: #fbbf24; animation: pulse 1s infinite; }
+        .agent-badge.error { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; }
+        .hashtag-chip { cursor: pointer; transition: all 0.2s; }
+        .hashtag-chip:hover { transform: scale(1.05); }
+        .tab-btn.active { background: rgba(139, 92, 246, 0.3); border-color: #8b5cf6; }
+        .scenario-card { transition: all 0.2s; cursor: pointer; }
+        .scenario-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3); }
+        .scenario-card.selected { border-color: #8b5cf6; background: rgba(139, 92, 246, 0.15); }
+        .step-card { border-left: 3px solid #4b5563; }
+        .step-card.active { border-left-color: #8b5cf6; background: rgba(139, 92, 246, 0.1); }
+        .step-card.completed { border-left-color: #22c55e; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 50; }
+        .modal.active { display: flex; align-items: center; justify-content: center; }
+        .modal-content { max-height: 90vh; overflow-y: auto; }
+        .code-editor { font-family: 'Fira Code', 'Monaco', monospace; tab-size: 4; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-slide-in { animation: slideIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-robot text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Interview Prep Platform</h1>
+                    <p class="text-xs text-gray-400">AI-Powered Scenario Generation</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="health-status" class="text-sm text-gray-400">
+                    <i class="fas fa-circle text-yellow-400 mr-1"></i> Checking...
+                </div>
+                <div id="points-display" class="hidden px-3 py-1 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                    <i class="fas fa-star text-yellow-400 mr-1"></i>
+                    <span id="total-points">0</span> баллов
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-6 space-y-6">
+        <!-- Scenario Type Selector -->
+        <section class="bg-gray-800 rounded-xl p-6">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-layer-group text-purple-400"></i>
+                Выберите тип сценария
+            </h2>
+            
+            <div id="scenario-types" class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                <!-- Scenario cards will be loaded here -->
+            </div>
+        </section>
+
+        <!-- Generator Panel -->
+        <section class="bg-gradient-to-r from-purple-900/50 to-blue-900/50 border border-purple-500/30 rounded-xl p-6">
+            <h2 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <i class="fas fa-magic text-purple-400"></i>
+                Генерация сценария
+            </h2>
+            
+            <div class="flex gap-3 mb-4 flex-wrap">
+                <input type="text" id="query" placeholder="Тема задачи (например: бинарный поиск, ООП, рекурсия)..." 
+                       class="flex-1 min-w-[300px] px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:border-purple-500 focus:outline-none">
+                <select id="difficulty" class="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg">
+                    <option value="easy">🟢 Easy</option>
+                    <option value="medium" selected>🟡 Medium</option>
+                    <option value="hard">🔴 Hard</option>
+                </select>
+                <select id="language" class="px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg">
+                    <option value="python" selected>🐍 Python</option>
+                    <option value="javascript">📜 JavaScript</option>
+                    <option value="java">☕ Java</option>
+                    <option value="cpp">⚡ C++</option>
+                </select>
+                <button onclick="generateScenario()" id="generate-btn" 
+                        class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg font-medium flex items-center gap-2">
+                    <i class="fas fa-play"></i> Генерировать
+                </button>
+            </div>
+            
+            <div id="selected-scenario-info" class="text-sm text-gray-400">
+                <span id="selected-type-badge" class="hidden px-2 py-1 bg-purple-500/20 border border-purple-500/50 rounded text-purple-300 mr-2"></span>
+                <span id="selected-type-desc"></span>
+            </div>
+            
+            <!-- Generation Progress -->
+            <div id="generation-progress" class="hidden mt-4">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm text-gray-400">Генерация:</span>
+                    <div id="progress-badges" class="flex gap-2 flex-wrap"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Scenario Container -->
+        <div id="scenario-container" class="hidden space-y-4">
+            <!-- Scenario Header -->
+            <section class="bg-gray-800 rounded-xl p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-2">
+                            <span id="scenario-type-badge" class="px-2 py-1 bg-purple-500/20 border border-purple-500/50 rounded text-purple-300 text-sm"></span>
+                            <span id="scenario-difficulty-badge" class="px-2 py-1 rounded text-sm"></span>
+                        </div>
+                        <h2 id="scenario-title" class="text-xl font-bold"></h2>
+                        <p id="scenario-description" class="text-gray-400 mt-1"></p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-yellow-400">
+                            <span id="current-points">0</span>/<span id="max-points">100</span>
+                        </div>
+                        <div class="text-xs text-gray-500">баллов</div>
+                        <div class="mt-2 text-sm text-gray-400">
+                            <i class="fas fa-clock mr-1"></i>
+                            <span id="time-limit">20</span> мин
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progress bar -->
+                <div class="w-full bg-gray-700 rounded-full h-2">
+                    <div id="scenario-progress" class="bg-purple-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>Шаг <span id="current-step">1</span> из <span id="total-steps">1</span></span>
+                    <span id="step-points-info"></span>
+                </div>
+            </section>
+
+            <!-- Steps Container -->
+            <div id="steps-container" class="space-y-4">
+                <!-- Steps will be rendered here -->
+            </div>
+
+            <!-- Code Editor (for interactive steps) -->
+            <section id="code-editor-section" class="hidden bg-gray-800 rounded-xl p-6">
+                <h3 class="font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-code text-green-400"></i> 
+                    <span id="editor-title">Ваш код</span>
+                </h3>
+                <div class="grid lg:grid-cols-2 gap-4">
+                    <div>
+                        <textarea id="user-code" rows="15" 
+                                  class="code-editor w-full bg-gray-900 border border-gray-700 rounded-lg p-4 text-sm text-green-300"
+                                  placeholder="Напишите ваш код здесь..."></textarea>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="text-sm text-gray-400 mb-1 block">Тестовый ввод</label>
+                            <textarea id="test-input" rows="4" 
+                                      class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm"></textarea>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="runUserCode()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
+                                <i class="fas fa-play mr-1"></i> Тест
+                            </button>
+                            <button onclick="submitSolution()" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm">
+                                <i class="fas fa-check mr-1"></i> Отправить
+                            </button>
+                            <button onclick="showHint()" id="hint-btn" class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm">
+                                <i class="fas fa-lightbulb mr-1"></i> Подсказка
+                            </button>
+                        </div>
+                        <div>
+                            <label class="text-sm text-gray-400 mb-1 block">Результат</label>
+                            <pre id="run-output" class="bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm min-h-[100px]"></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Test Results -->
+            <section id="test-results-section" class="hidden bg-gray-800 rounded-xl p-6">
+                <h3 class="font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-vial text-blue-400"></i> Результаты тестов
+                </h3>
+                <div id="test-results" class="space-y-2"></div>
+            </section>
+
+            <!-- Hints Section -->
+            <section id="hints-section" class="hidden bg-gray-800 rounded-xl p-6">
+                <h3 class="font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-lightbulb text-yellow-400"></i> Подсказки
+                </h3>
+                <div id="hints-list" class="space-y-2"></div>
+            </section>
+
+            <!-- Solution (shown after completion) -->
+            <section id="solution-section" class="hidden bg-gray-800 rounded-xl p-6">
+                <h3 class="font-bold mb-4 flex items-center gap-2">
+                    <i class="fas fa-check-circle text-green-400"></i> Эталонное решение
+                </h3>
+                <pre id="reference-solution" class="bg-gray-900 rounded-lg p-4 text-sm overflow-x-auto"><code class="language-python"></code></pre>
+            </section>
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="bg-gray-800 rounded-xl p-12 text-center">
+            <i class="fas fa-layer-group text-6xl text-gray-600 mb-4"></i>
+            <h3 class="text-xl font-bold text-gray-400 mb-2">Выберите тип сценария</h3>
+            <p class="text-gray-500">Выберите тип задачи выше, введите тему и нажмите "Генерировать"</p>
+            <div class="mt-6 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs text-gray-500 max-w-3xl mx-auto">
+                <div class="p-2 bg-gray-900 rounded">🐛 Исправить баги</div>
+                <div class="p-2 bg-gray-900 rounded">📝 Дописать код</div>
+                <div class="p-2 bg-gray-900 rounded">🔍 Найти баг</div>
+                <div class="p-2 bg-gray-900 rounded">♻️ Рефакторинг</div>
+                <div class="p-2 bg-gray-900 rounded">📊 Многошаговая</div>
+                <div class="p-2 bg-gray-900 rounded">👀 Код-ревью</div>
+                <div class="p-2 bg-gray-900 rounded">💬 Объяснить</div>
+                <div class="p-2 bg-gray-900 rounded">⚡ Оптимизация</div>
+                <div class="p-2 bg-gray-900 rounded">🧪 Написать тесты</div>
+                <div class="p-2 bg-gray-900 rounded">✨ С нуля</div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API = 'http://localhost:8000';
+        
+        // ============== State ==============
+        let currentScenario = null;
+        let currentStepIndex = 0;
+        let earnedPoints = 0;
+        let usedHints = [];
+        let selectedScenarioType = null;
+        
+        // Scenario type definitions with icons and colors
+        const SCENARIO_TYPES = {
+            fix_code: { icon: '🐛', name: 'Исправить баги', color: 'red', desc: 'Показать код с багами → исправить' },
+            complete: { icon: '📝', name: 'Дописать код', color: 'blue', desc: 'Показать код с TODO → дописать' },
+            debug_output: { icon: '🔍', name: 'Найти баг', color: 'orange', desc: 'Показать код + неправильный вывод → найти баг' },
+            refactor: { icon: '♻️', name: 'Рефакторинг', color: 'green', desc: 'Показать плохой код → улучшить' },
+            multi_step: { icon: '📊', name: 'Многошаговая', color: 'purple', desc: 'Базовое → edge cases → оптимизация' },
+            code_review: { icon: '👀', name: 'Код-ревью', color: 'cyan', desc: 'Провести ревью кода' },
+            explain: { icon: '💬', name: 'Объяснить', color: 'yellow', desc: 'Объяснить что делает код' },
+            optimize: { icon: '⚡', name: 'Оптимизация', color: 'pink', desc: 'Оптимизировать производительность' },
+            write_tests: { icon: '🧪', name: 'Написать тесты', color: 'teal', desc: 'Написать тесты для кода' },
+            implement: { icon: '✨', name: 'С нуля', color: 'indigo', desc: 'Классическая задача с нуля' }
+        };
+        
+        const STEP_TYPE_ICONS = {
+            show_code: '📄',
+            show_text: '📋',
+            show_output: '📤',
+            ask_fix: '🔧',
+            ask_complete: '✏️',
+            ask_explain: '💭',
+            ask_write: '⌨️',
+            ask_review: '🔎',
+            run_tests: '🧪',
+            hint: '💡',
+            solution: '✅'
+        };
+
+        // ============== Init ==============
+        async function init() {
+            await checkHealth();
+            await loadScenarioTypes();
+        }
+
+        async function checkHealth() {
+            try {
+                const res = await fetch(`${API}/health`);
+                const data = await res.json();
+                const allOk = Object.values(data.services || {}).every(s => s === 'ok');
+                document.getElementById('health-status').innerHTML = allOk 
+                    ? '<i class="fas fa-circle text-green-400 mr-1"></i> Online'
+                    : '<i class="fas fa-circle text-yellow-400 mr-1"></i> Partial';
+            } catch (e) {
+                document.getElementById('health-status').innerHTML = 
+                    '<i class="fas fa-circle text-red-400 mr-1"></i> Offline';
+            }
+        }
+
+        async function loadScenarioTypes() {
+            const container = document.getElementById('scenario-types');
+            
+            // Render scenario type cards
+            container.innerHTML = Object.entries(SCENARIO_TYPES).map(([id, type]) => `
+                <div class="scenario-card bg-gray-900 border border-gray-700 rounded-lg p-3 text-center ${selectedScenarioType === id ? 'selected' : ''}"
+                     onclick="selectScenarioType('${id}')" data-type="${id}">
+                    <div class="text-2xl mb-1">${type.icon}</div>
+                    <div class="font-medium text-sm">${type.name}</div>
+                    <div class="text-xs text-gray-500 mt-1">${type.desc}</div>
+                </div>
+            `).join('');
+        }
+
+        function selectScenarioType(type) {
+            selectedScenarioType = type === selectedScenarioType ? null : type;
+            
+            // Update UI
+            document.querySelectorAll('.scenario-card').forEach(card => {
+                card.classList.toggle('selected', card.dataset.type === selectedScenarioType);
+            });
+            
+            // Update info
+            const badge = document.getElementById('selected-type-badge');
+            const desc = document.getElementById('selected-type-desc');
+            
+            if (selectedScenarioType) {
+                const typeInfo = SCENARIO_TYPES[selectedScenarioType];
+                badge.classList.remove('hidden');
+                badge.textContent = `${typeInfo.icon} ${typeInfo.name}`;
+                desc.textContent = typeInfo.desc;
+            } else {
+                badge.classList.add('hidden');
+                desc.textContent = 'Выберите тип сценария или оставьте пустым для автоматического выбора';
+            }
+        }
+
+        // ============== Generate Scenario ==============
+        async function generateScenario() {
+            const query = document.getElementById('query').value.trim();
+            if (!query) return alert('Введите тему задачи');
+
+            const btn = document.getElementById('generate-btn');
+            const progressPanel = document.getElementById('generation-progress');
+            const progressBadges = document.getElementById('progress-badges');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Генерация...';
+            
+            // Show progress
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('scenario-container').classList.add('hidden');
+            progressPanel.classList.remove('hidden');
+            progressBadges.innerHTML = `
+                <span class="agent-badge running px-2 py-1 rounded-full text-xs border flex items-center gap-1">
+                    <i class="fas fa-spinner fa-spin"></i> Планирование
+                </span>
+                <span class="agent-badge px-2 py-1 rounded-full text-xs border border-gray-600 text-gray-400">Генерация кода</span>
+                <span class="agent-badge px-2 py-1 rounded-full text-xs border border-gray-600 text-gray-400">Создание шагов</span>
+            `;
+
+            try {
+                const res = await fetch(`${API}/api/generate/scenario`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query,
+                        difficulty: document.getElementById('difficulty').value,
+                        language: document.getElementById('language').value,
+                        scenario_type: selectedScenarioType
+                    })
+                });
+
+                const result = await res.json();
+                
+                // Update progress
+                progressBadges.innerHTML = `
+                    <span class="agent-badge done px-2 py-1 rounded-full text-xs border flex items-center gap-1">
+                        <i class="fas fa-check"></i> Планирование
+                    </span>
+                    <span class="agent-badge done px-2 py-1 rounded-full text-xs border flex items-center gap-1">
+                        <i class="fas fa-check"></i> Генерация кода
+                    </span>
+                    <span class="agent-badge done px-2 py-1 rounded-full text-xs border flex items-center gap-1">
+                        <i class="fas fa-check"></i> Создание шагов
+                    </span>
+                `;
+
+                if (result.id) {
+                    currentScenario = result;
+                    currentStepIndex = 0;
+                    earnedPoints = 0;
+                    usedHints = [];
+                    displayScenario(result);
+                } else {
+                    throw new Error(result.error || 'Не удалось сгенерировать сценарий');
+                }
+
+                btn.innerHTML = '<i class="fas fa-check"></i> Готово!';
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-play"></i> Генерировать';
+                    btn.disabled = false;
+                }, 2000);
+
+            } catch (e) {
+                console.error(e);
+                alert('Ошибка: ' + e.message);
+                btn.innerHTML = '<i class="fas fa-play"></i> Генерировать';
+                btn.disabled = false;
+                progressPanel.classList.add('hidden');
+            }
+        }
+
+        // ============== Display Scenario ==============
+        function displayScenario(scenario) {
+            document.getElementById('scenario-container').classList.remove('hidden');
+            document.getElementById('empty-state').classList.add('hidden');
+            document.getElementById('generation-progress').classList.add('hidden');
+            
+            // Header
+            const typeInfo = SCENARIO_TYPES[scenario.type] || { icon: '📋', name: scenario.type };
+            document.getElementById('scenario-type-badge').textContent = `${typeInfo.icon} ${typeInfo.name}`;
+            
+            const diffColors = { easy: 'bg-green-500/20 text-green-300', medium: 'bg-yellow-500/20 text-yellow-300', hard: 'bg-red-500/20 text-red-300' };
+            document.getElementById('scenario-difficulty-badge').className = `px-2 py-1 rounded text-sm ${diffColors[scenario.difficulty] || diffColors.medium}`;
+            document.getElementById('scenario-difficulty-badge').textContent = scenario.difficulty;
+            
+            document.getElementById('scenario-title').textContent = scenario.title;
+            document.getElementById('scenario-description').textContent = scenario.description;
+            document.getElementById('max-points').textContent = scenario.total_points || 100;
+            document.getElementById('time-limit').textContent = scenario.time_limit_minutes || 20;
+            document.getElementById('total-steps').textContent = scenario.steps?.length || 1;
+            
+            // Render steps
+            renderSteps(scenario.steps);
+            
+            // Show code editor for interactive scenarios
+            const hasInteractive = scenario.steps?.some(s => s.is_interactive);
+            if (hasInteractive) {
+                document.getElementById('code-editor-section').classList.remove('hidden');
+                
+                // Pre-fill code if there's code to fix/complete
+                const codeStep = scenario.steps?.find(s => s.step_type === 'show_code');
+                if (codeStep && codeStep.content) {
+                    document.getElementById('user-code').value = codeStep.content;
+                }
+            }
+            
+            // Show hints section if available
+            const hints = scenario.metadata?.hints || [];
+            if (hints.length > 0) {
+                document.getElementById('hints-section').classList.remove('hidden');
+                renderHints(hints);
+            }
+            
+            // Show points
+            document.getElementById('points-display').classList.remove('hidden');
+            updatePoints();
+        }
+
+        function renderSteps(steps) {
+            const container = document.getElementById('steps-container');
+            
+            container.innerHTML = steps.map((step, i) => {
+                const icon = STEP_TYPE_ICONS[step.step_type] || '📌';
+                const isActive = i === currentStepIndex;
+                const isCompleted = i < currentStepIndex;
+                
+                let content = '';
+                
+                // Render content based on step type
+                switch (step.step_type) {
+                    case 'show_code':
+                        content = `<pre class="bg-gray-900 rounded-lg p-4 text-sm overflow-x-auto"><code class="language-python">${escapeHtml(step.content)}</code></pre>`;
+                        break;
+                    case 'show_text':
+                        content = `<div class="text-gray-300">${escapeHtml(step.content)}</div>`;
+                        break;
+                    case 'show_output':
+                        const outputData = typeof step.content === 'object' ? step.content : { output: step.content };
+                        content = `
+                            <div class="grid md:grid-cols-2 gap-4">
+                                ${outputData.expected ? `<div><div class="text-xs text-gray-500 mb-1">Ожидаемый вывод:</div><pre class="bg-gray-900 rounded p-3 text-green-300 text-sm">${escapeHtml(outputData.expected)}</pre></div>` : ''}
+                                ${outputData.actual ? `<div><div class="text-xs text-gray-500 mb-1">Фактический вывод:</div><pre class="bg-gray-900 rounded p-3 text-red-300 text-sm">${escapeHtml(outputData.actual)}</pre></div>` : ''}
+                            </div>
+                        `;
+                        break;
+                    case 'ask_fix':
+                    case 'ask_complete':
+                    case 'ask_write':
+                        content = `
+                            <div class="text-gray-300 mb-2">${escapeHtml(step.content)}</div>
+                            ${step.points ? `<div class="text-sm text-yellow-400"><i class="fas fa-star mr-1"></i>${step.points} баллов</div>` : ''}
+                            ${step.time_limit_seconds ? `<div class="text-sm text-gray-500"><i class="fas fa-clock mr-1"></i>${Math.floor(step.time_limit_seconds / 60)} мин</div>` : ''}
+                        `;
+                        break;
+                    case 'ask_explain':
+                        const questions = typeof step.content === 'object' ? step.content.questions : [step.content];
+                        content = `
+                            <div class="space-y-2">
+                                ${questions.map((q, qi) => `
+                                    <div class="bg-gray-900 rounded p-3">
+                                        <div class="text-gray-300 mb-2">${qi + 1}. ${escapeHtml(q)}</div>
+                                        <textarea class="w-full bg-gray-800 border border-gray-700 rounded p-2 text-sm" rows="3" placeholder="Ваш ответ..."></textarea>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                        break;
+                    case 'ask_review':
+                        content = `
+                            <div class="text-gray-300 mb-4">${escapeHtml(step.content)}</div>
+                            <textarea class="w-full bg-gray-900 border border-gray-700 rounded p-3 text-sm" rows="6" placeholder="Напишите ваши комментарии к коду..."></textarea>
+                        `;
+                        break;
+                    case 'run_tests':
+                        const tests = Array.isArray(step.content) ? step.content : [];
+                        content = `
+                            <div class="text-gray-400 text-sm mb-3">Тесты для проверки решения:</div>
+                            <div class="space-y-2 max-h-96 overflow-y-auto">
+                                ${tests.slice(0, 10).map((t, ti) => `
+                                    <div class="bg-gray-900 rounded-lg p-3 text-sm">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <span class="text-gray-500 font-medium">Тест ${ti + 1}</span>
+                                            ${t.description ? `<span class="text-xs text-gray-600">${escapeHtml(t.description)}</span>` : ''}
+                                            ${t.points ? `<span class="text-xs text-yellow-400">${t.points} pts</span>` : ''}
+                                        </div>
+                                        <div class="grid md:grid-cols-2 gap-3">
+                                            <div>
+                                                <div class="text-xs text-gray-500 mb-1">Вход:</div>
+                                                <pre class="bg-gray-800 rounded p-2 text-green-300 text-xs overflow-x-auto whitespace-pre-wrap">${escapeHtml(t.input || '')}</pre>
+                                            </div>
+                                            <div>
+                                                <div class="text-xs text-gray-500 mb-1">Ожидаемый выход:</div>
+                                                <pre class="bg-gray-800 rounded p-2 text-blue-300 text-xs overflow-x-auto whitespace-pre-wrap">${escapeHtml(t.output || t.expected || '')}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            ${tests.length > 10 ? `<div class="text-xs text-gray-500 mt-2">+ ещё ${tests.length - 10} тестов</div>` : ''}
+                        `;
+                        break;
+                    default:
+                        content = `<div class="text-gray-300">${escapeHtml(typeof step.content === 'string' ? step.content : JSON.stringify(step.content))}</div>`;
+                }
+                
+                return `
+                    <section class="step-card ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''} bg-gray-800 rounded-xl p-6 animate-slide-in" data-step="${i}">
+                        <div class="flex items-center gap-2 mb-4">
+                            <span class="text-xl">${icon}</span>
+                            <h3 class="font-bold">${getStepTitle(step.step_type)}</h3>
+                            ${step.is_interactive ? '<span class="px-2 py-0.5 bg-purple-500/20 text-purple-300 text-xs rounded">Интерактивный</span>' : ''}
+                            ${isCompleted ? '<span class="ml-auto text-green-400"><i class="fas fa-check-circle"></i></span>' : ''}
+                        </div>
+                        ${content}
+                    </section>
+                `;
+            }).join('');
+            
+            // Highlight code
+            document.querySelectorAll('pre code').forEach(block => {
+                hljs.highlightElement(block);
+            });
+            
+            updateProgress();
+        }
+
+        function getStepTitle(stepType) {
+            const titles = {
+                show_code: 'Код',
+                show_text: 'Инструкции',
+                show_output: 'Вывод программы',
+                ask_fix: 'Исправьте код',
+                ask_complete: 'Допишите код',
+                ask_explain: 'Объясните',
+                ask_write: 'Напишите код',
+                ask_review: 'Проведите ревью',
+                run_tests: 'Тестирование',
+                hint: 'Подсказка',
+                solution: 'Решение'
+            };
+            return titles[stepType] || stepType;
+        }
+
+        function renderHints(hints) {
+            const container = document.getElementById('hints-list');
+            container.innerHTML = hints.map((hint, i) => `
+                <div class="hint-item ${usedHints.includes(i) ? '' : 'hidden'}" data-hint="${i}">
+                    <div class="bg-gray-900 rounded p-3">
+                        <div class="text-yellow-400 mb-1">💡 Подсказка ${i + 1}</div>
+                        <div class="text-gray-300 text-sm">${escapeHtml(hint.hint_text || hint.text || hint)}</div>
+                    </div>
+                </div>
+            `).join('') + `
+                <button onclick="showHint()" class="px-4 py-2 bg-yellow-600/20 border border-yellow-600/50 text-yellow-400 rounded-lg text-sm hover:bg-yellow-600/30">
+                    <i class="fas fa-lightbulb mr-1"></i> Показать подсказку
+                    <span class="text-xs text-gray-500 ml-1">(${hints.length - usedHints.length} осталось)</span>
+                </button>
+            `;
+        }
+
+        function showHint() {
+            const hints = currentScenario?.metadata?.hints || [];
+            const nextHintIndex = usedHints.length;
+            
+            if (nextHintIndex >= hints.length) {
+                alert('Больше подсказок нет');
+                return;
+            }
+            
+            const hint = hints[nextHintIndex];
+            const penalty = hint.penalty_percent || 10;
+            
+            if (confirm(`Показать подсказку? Это снизит баллы на ${penalty}%`)) {
+                usedHints.push(nextHintIndex);
+                
+                // Show hint
+                const hintEl = document.querySelector(`[data-hint="${nextHintIndex}"]`);
+                if (hintEl) hintEl.classList.remove('hidden');
+                
+                // Update hints section
+                renderHints(hints);
+            }
+        }
+
+        // ============== Code Execution ==============
+        async function runUserCode() {
+            const code = document.getElementById('user-code').value;
+            const input = document.getElementById('test-input').value;
+            const output = document.getElementById('run-output');
+
+            output.textContent = 'Выполнение...';
+            output.className = 'bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm text-yellow-400 min-h-[100px]';
+
+            try {
+                const res = await fetch(`${API}/api/code/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, input })
+                });
+
+                const result = await res.json();
+
+                if (result.stderr) {
+                    output.textContent = result.stderr;
+                    output.className = 'bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm text-red-400 min-h-[100px]';
+                } else {
+                    output.textContent = result.stdout || '(пустой вывод)';
+                    output.className = 'bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm text-green-400 min-h-[100px]';
+                }
+            } catch (e) {
+                output.textContent = 'Ошибка: ' + e.message;
+                output.className = 'bg-gray-900 border border-gray-700 rounded-lg p-3 font-mono text-sm text-red-400 min-h-[100px]';
+            }
+        }
+
+        async function submitSolution() {
+            const code = document.getElementById('user-code').value;
+            if (!code.trim()) return alert('Напишите код решения');
+            
+            const testCases = currentScenario?.metadata?.test_cases || [];
+            const originalCode = currentScenario?.metadata?.original_code;
+            const taskType = currentScenario?.metadata?.task_type || currentScenario?.type;
+            
+            document.getElementById('test-results-section').classList.remove('hidden');
+            const resultsContainer = document.getElementById('test-results');
+            resultsContainer.innerHTML = '<div class="text-yellow-400"><i class="fas fa-spinner fa-spin mr-2"></i>Запуск тестов...</div>';
+            
+            try {
+                const res = await fetch(`${API}/api/code/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        code, 
+                        test_cases: testCases,
+                        original_code: originalCode,
+                        task_type: taskType
+                    })
+                });
+
+                const result = await res.json();
+                
+                // Check for unchanged code error
+                if (result.error === 'unchanged_code') {
+                    resultsContainer.innerHTML = `
+                        <div class="bg-red-900/30 border border-red-500/50 rounded-lg p-4">
+                            <div class="flex items-center gap-2 text-red-400 text-lg font-bold mb-2">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Код не изменён!
+                            </div>
+                            <p class="text-gray-300">${result.message || 'Вы сдали исходный неоптимизированный код. Для получения баллов необходимо оптимизировать алгоритм.'}</p>
+                            <div class="mt-3 text-yellow-400 text-2xl font-bold">0 баллов</div>
+                        </div>
+                    `;
+                    earnedPoints = 0;
+                    updatePoints();
+                    return;
+                }
+                
+                // Display results
+                const passed = result.passed || 0;
+                const failed = result.failed || 0;
+                const total = passed + failed;
+                const allPassed = result.all_passed;
+                
+                // Calculate points - use server's earned_points if available
+                const maxPoints = currentScenario?.total_points || 100;
+                const hintPenalty = usedHints.reduce((sum, i) => {
+                    const hint = currentScenario?.metadata?.hints?.[i];
+                    return sum + (hint?.penalty_percent || 10);
+                }, 0);
+                
+                // Use server-calculated points if available, otherwise calculate locally
+                let basePoints;
+                if (result.earned_points !== undefined) {
+                    basePoints = result.earned_points;
+                } else {
+                    basePoints = allPassed ? maxPoints : Math.floor(maxPoints * (passed / total));
+                }
+                earnedPoints = Math.max(0, Math.floor(basePoints * (1 - hintPenalty / 100)));
+                
+                resultsContainer.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="${allPassed ? 'text-green-400' : 'text-yellow-400'} text-lg font-bold">
+                            <i class="fas ${allPassed ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2"></i>
+                            ${passed}/${total} тестов пройдено
+                        </div>
+                        <div class="text-2xl font-bold text-yellow-400">
+                            +${earnedPoints} баллов
+                        </div>
+                    </div>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        ${(result.tests || []).map((t, i) => {
+                            const testNum = t.num || t.test || i + 1;
+                            const timeInfo = t.execution_time_ms ? `${t.execution_time_ms.toFixed(0)}ms` : '';
+                            const timeLimit = t.time_limit_ms ? `/ ${t.time_limit_ms}ms` : '';
+                            const timeExceeded = t.time_exceeded;
+                            const failureReason = t.failure_reason;
+                            
+                            let statusText = t.passed ? 'Пройден' : 'Не пройден';
+                            let statusClass = t.passed ? 'text-green-600' : 'text-red-600';
+                            
+                            if (failureReason === 'time_limit_exceeded') {
+                                statusText = 'Превышен лимит времени';
+                                statusClass = 'text-orange-500';
+                            } else if (failureReason === 'wrong_answer') {
+                                statusText = 'Неверный ответ';
+                            }
+                            
+                            return `
+                            <div class="bg-gray-900 rounded-lg p-3 ${t.passed ? 'border-l-3 border-green-500' : timeExceeded ? 'border-l-3 border-orange-500' : 'border-l-3 border-red-500'}">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i class="fas ${t.passed ? 'fa-check-circle text-green-400' : timeExceeded ? 'fa-clock text-orange-400' : 'fa-times-circle text-red-400'}"></i>
+                                    <span class="font-medium ${t.passed ? 'text-green-400' : 'text-red-400'}">Тест ${testNum}</span>
+                                    <span class="text-xs ${statusClass}">${statusText}</span>
+                                    ${timeInfo ? `<span class="text-xs ${timeExceeded ? 'text-orange-400' : 'text-gray-500'} ml-auto"><i class="fas fa-clock mr-1"></i>${timeInfo} ${timeLimit}</span>` : ''}
+                                    ${t.points ? `<span class="text-xs ${t.passed ? 'text-yellow-400' : 'text-gray-600'}">+${t.passed ? t.points : 0} pts</span>` : ''}
+                                </div>
+                                <div class="grid md:grid-cols-3 gap-3 text-xs">
+                                    <div>
+                                        <div class="text-gray-500 mb-1">Вход:</div>
+                                        <pre class="bg-gray-800 rounded p-2 text-green-300 whitespace-pre-wrap">${escapeHtml(t.input || '')}</pre>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 mb-1">Ожидалось:</div>
+                                        <pre class="bg-gray-800 rounded p-2 text-blue-300 whitespace-pre-wrap">${escapeHtml(t.expected || '')}</pre>
+                                    </div>
+                                    <div>
+                                        <div class="text-gray-500 mb-1">Получено:</div>
+                                        <pre class="bg-gray-800 rounded p-2 ${t.passed ? 'text-green-300' : 'text-red-300'} whitespace-pre-wrap">${escapeHtml(t.actual || '')}</pre>
+                                    </div>
+                                </div>
+                                ${t.error ? `<div class="mt-2 text-xs text-red-400"><i class="fas fa-exclamation-triangle mr-1"></i>${escapeHtml(t.error)}</div>` : ''}
+                            </div>
+                        `}).join('')}
+                    </div>
+                `;
+                
+                updatePoints();
+                
+                // Show solution if all passed
+                if (allPassed) {
+                    showSolution();
+                }
+                
+            } catch (e) {
+                resultsContainer.innerHTML = `<div class="text-red-400">Ошибка: ${e.message}</div>`;
+            }
+        }
+
+        function showSolution() {
+            const workingCode = currentScenario?.metadata?.working_code;
+            if (workingCode) {
+                document.getElementById('solution-section').classList.remove('hidden');
+                const codeEl = document.querySelector('#reference-solution code');
+                codeEl.textContent = workingCode;
+                hljs.highlightElement(codeEl);
+            }
+        }
+
+        // ============== Progress ==============
+        function updateProgress() {
+            const steps = currentScenario?.steps || [];
+            const progress = steps.length > 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
+            
+            document.getElementById('scenario-progress').style.width = `${progress}%`;
+            document.getElementById('current-step').textContent = currentStepIndex + 1;
+            
+            // Update step points info
+            const currentStep = steps[currentStepIndex];
+            if (currentStep?.points) {
+                document.getElementById('step-points-info').textContent = `${currentStep.points} баллов за этот шаг`;
+            }
+        }
+
+        function updatePoints() {
+            document.getElementById('current-points').textContent = earnedPoints;
+            document.getElementById('total-points').textContent = earnedPoints;
+        }
+
+        // ============== Utilities ==============
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        // ============== Init ==============
+        init();
+    </script>
+</body>
+</html>
