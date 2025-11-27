@@ -18,8 +18,9 @@ SERVICES = [
     {"name": "RAG", "dir": "rag_service", "port": 8004},
     {"name": "Knowledge", "dir": "knowledge_service", "port": 8005},
     {"name": "Learning", "dir": "learning_service", "port": 8006},
-    {"name": "Hashtag", "dir": "hashtag_service", "port": 8011},
+    {"name": "Hashtag", "dir": "hashtag_service", "port": 8010},
     {"name": "Task Generator", "dir": "task_generator", "port": 8002},
+    {"name": "Interview", "dir": "interview_service", "port": 8011},
     # Orchestration layer
     {"name": "Task API", "dir": "task_api", "port": 8010},
     # Gateway (use old gateway for now, or new api_gateway)
@@ -57,8 +58,9 @@ def start_services():
         env["RAG_SERVICE_URL"] = "http://localhost:8004"
         env["KNOWLEDGE_SERVICE_URL"] = "http://localhost:8005"
         env["LEARNING_SERVICE_URL"] = "http://localhost:8006"
-        env["HASHTAG_SERVICE_URL"] = "http://localhost:8011"
+        env["HASHTAG_SERVICE_URL"] = "http://localhost:8010"
         env["TASK_API_URL"] = "http://localhost:8010"
+        env["INTERVIEW_SERVICE_URL"] = "http://localhost:8011"
         env["SANDBOX_MODE"] = "subprocess"  # Use subprocess for local dev (no Docker)
         
         proc = subprocess.Popen(
@@ -77,7 +79,7 @@ def start_services():
     print(f"  Gateway:        http://localhost:8000  (entry point)")
     print(f"  Task API:       http://localhost:8010  (orchestration)")
     print(f"  Task Generator: http://localhost:8002  (flexible + hashtag)")
-    print(f"  Hashtag:        http://localhost:8011  (taxonomy + RAG)")
+    print(f"  Interview:      http://localhost:8011  (HR bot)")
     print(f"  Library:        http://localhost:8001")
     print(f"  Code Runner:    http://localhost:8003  (Docker sandbox)")
     print(f"  RAG:            http://localhost:8004  (embeddings)")
@@ -85,11 +87,12 @@ def start_services():
     print(f"  Learning:       http://localhost:8006  (SM-2 algorithm)")
     print("\n📚 API Documentation:")
     print(f"  http://localhost:8000/docs")
-    print("\n✨ Features (v3.0):")
+    print("\n✨ Features (v4.0):")
+    print(f"  🤖 HR Interview Bot with AI Judge")
+    print(f"  💻 Live Coding with adaptive difficulty")
     print(f"  🏷️  Hashtag taxonomy with RAG search")
     print(f"  🎯 Level-based filtering (junior/middle/senior)")
     print(f"  📝 Example-based task generation")
-    print(f"  🆕 Auto-expansion of hashtag taxonomy")
     print(f"  🔒 Docker sandbox for code execution")
     print(f"  📈 SM-2 spaced repetition")
     print("\nPress Ctrl+C to stop all services")

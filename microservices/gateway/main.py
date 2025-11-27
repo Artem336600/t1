@@ -4,7 +4,7 @@ Entry point for all client requests, routes to appropriate microservices
 """
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 import httpx
 import os
@@ -35,6 +35,7 @@ KNOWLEDGE_URL = os.getenv("KNOWLEDGE_SERVICE_URL", "http://localhost:8005")
 LEARNING_URL = os.getenv("LEARNING_SERVICE_URL", "http://localhost:8006")
 HASHTAG_URL = os.getenv("HASHTAG_SERVICE_URL", "http://localhost:8010")
 TASK_ARCHITECT_URL = os.getenv("TASK_ARCHITECT_URL", "http://localhost:8007")
+INTERVIEW_URL = os.getenv("INTERVIEW_SERVICE_URL", "http://localhost:8011")
 
 # HTTP Client
 client = httpx.AsyncClient(timeout=300.0)
@@ -66,7 +67,8 @@ async def health():
         ("knowledge", KNOWLEDGE_URL),
         ("learning", LEARNING_URL),
         ("hashtag", HASHTAG_URL),
-        ("architect", TASK_ARCHITECT_URL)
+        ("architect", TASK_ARCHITECT_URL),
+        ("interview", INTERVIEW_URL)
     ]:
         try:
             resp = await client.get(f"{url}/health", timeout=5.0)
@@ -834,6 +836,181 @@ async def get_review_queue(user_id: str):
     """Get concepts due for review"""
     resp = await client.get(f"{LEARNING_URL}/review-queue/{user_id}")
     return resp.json()
+
+
+# ============== Interview Routes ==============
+
+@app.post("/api/interview/start")
+async def start_interview(request: Request):
+    """
+    Start new interview session from schema.
+    
+    Request body:
+    - nodes: List of React Flow nodes
+    - edges: List of React Flow edges
+    - candidate_name: Optional candidate name
+    """
+    data = await request.json()
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/start", json=data, timeout=60.0)
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.post("/api/interview/start/stream")
+async def start_interview_stream(request: Request):
+    """
+    Start new interview session with streaming greeting (SSE).
+    Returns Server-Sent Events for real-time greeting display.
+    """
+    data = await request.json()
+    
+    async def stream_response():
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as stream_client:
+                async with stream_client.stream(
+                    "POST",
+                    f"{INTERVIEW_URL}/interview/start/stream",
+                    json=data
+                ) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except Exception as e:
+            import json
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n".encode()
+    
+    return StreamingResponse(
+        stream_response(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@app.post("/api/interview/message")
+async def interview_message(request: Request):
+    """
+    Send message to HR bot during interview.
+    
+    Request body:
+    - session_id: Interview session ID
+    - message: Candidate's message
+    """
+    data = await request.json()
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/message", json=data, timeout=60.0)
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.post("/api/interview/message/stream")
+async def interview_message_stream(request: Request):
+    """
+    Send message to HR bot with streaming response (SSE).
+    Returns Server-Sent Events for real-time text display.
+    
+    Request body:
+    - session_id: Interview session ID
+    - message: Candidate's message
+    """
+    data = await request.json()
+    
+    async def stream_response():
+        try:
+            async with httpx.AsyncClient(timeout=120.0) as stream_client:
+                async with stream_client.stream(
+                    "POST",
+                    f"{INTERVIEW_URL}/interview/message/stream",
+                    json=data
+                ) as response:
+                    async for chunk in response.aiter_bytes():
+                        yield chunk
+        except Exception as e:
+            import json
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n".encode()
+    
+    return StreamingResponse(
+        stream_response(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@app.post("/api/interview/code")
+async def interview_code(request: Request):
+    """
+    Submit code for live coding evaluation.
+    
+    Request body:
+    - session_id: Interview session ID
+    - code: Submitted code
+    - language: Programming language (default: python)
+    """
+    data = await request.json()
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/code", json=data, timeout=120.0)
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.post("/api/interview/{session_id}/start-live-coding")
+async def start_live_coding(session_id: str):
+    """Start Live Coding mode and get task"""
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/{session_id}/start-live-coding", timeout=60.0)
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.get("/api/interview/{session_id}/status")
+async def interview_status(session_id: str):
+    """Get current interview status"""
+    try:
+        resp = await client.get(f"{INTERVIEW_URL}/interview/{session_id}/status")
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.get("/api/interview/{session_id}/history")
+async def interview_history(session_id: str):
+    """Get full interview history"""
+    try:
+        resp = await client.get(f"{INTERVIEW_URL}/interview/{session_id}/history")
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.post("/api/interview/{session_id}/skip")
+async def interview_skip(session_id: str):
+    """Skip current interview step"""
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/{session_id}/skip")
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
+
+
+@app.post("/api/interview/{session_id}/end")
+async def interview_end(session_id: str):
+    """End interview early and get results"""
+    try:
+        resp = await client.post(f"{INTERVIEW_URL}/interview/{session_id}/end")
+        return resp.json()
+    except Exception as e:
+        return {"error": f"Interview service unavailable: {str(e)}"}
 
 
 if __name__ == "__main__":

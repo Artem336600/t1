@@ -131,6 +131,23 @@ services:
       - learning_data:/app/data
     restart: unless-stopped
 
+  # Interview Service - HR Bot for conducting interviews
+  interview:
+    build: ./interview_service
+    ports:
+      - "8011:8011"
+    environment:
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://llm.t1v.scibox.tech/v1}
+      - LLM_CHAT_MODEL=qwen3-32b-awq
+      - LLM_CODE_MODEL=qwen3-coder-30b-a3b-instruct-fp8
+      - TASK_GENERATOR_URL=http://task-generator:8002
+      - CODE_RUNNER_URL=http://code-runner:8003
+    depends_on:
+      - task-generator
+      - code-runner
+    restart: unless-stopped
+
   # ============== Frontend (Optional) ==============
   
   # Legacy Gateway with static frontend
